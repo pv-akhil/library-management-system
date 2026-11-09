@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+
+{% block title %}Circulation Log | Apex Library{% endblock %}
+{% block page_title %}Circulation History &amp; Active Loans{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body p-4">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+            <div>
+                <h5 class="fw-bold mb-1 text-dark">Circulation Records</h5>
+                <p class="text-muted small mb-0">Total circulation entries: <span class="fw-semibold text-primary">{{ total_count }}</span></p>
+            </div>
+            {% if user.is_staff_member %}
+            <div class="d-flex gap-2">
+                <a href="{% url 'transactions:issue_book' %}" class="btn btn-primary d-flex align-items-center gap-2">
+                    <i class="bi bi-box-arrow-up-right"></i>
+                    <span>Issue Book</span>
+                </a>
+                <a href="{% url 'transactions:return_book' %}" class="btn btn-outline-success d-flex align-items-center gap-2">
+                    <i class="bi bi-box-arrow-in-down-left"></i>
+                    <span>Return Book</span>
+                </a>
+                <a href="{% url 'dashboard:export_transactions_csv' %}" class="btn btn-light border" title="Export CSV">
+                    <i class="bi bi-filetype-csv me-1"></i> Export CSV
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Filters with HTMX -->
+        <div class="row g-2 mb-3">
+            <div class="col-12 col-md-8">
+                <div class="input-group">
+                    <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text"
+                           name="q"
+                           value="{{ query }}"
+                           class="form-control"
+                           placeholder="Search by book title, barcode, member name or member ID..."
+                           hx-get="{% url 'transactions:circulation_list' %}"
+                           hx-trigger="keyup changed delay:300ms, search"
+                           hx-target="#transactionTableBody"
+                           hx-indicator="#transSearchIndicator"
+                           hx-include="[name='status']">
+                    <span class="input-group-text bg-white htmx-indicator" id="transSearchIndicator">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                    </span>
+                </div>
+            </div>
+            <div class="col-12 col-md-4">
+                <select name="status"
+                        class="form-select"
+                        hx-get="{% url 'transactions:circulation_list' %}"
+                        hx-trigger="change"
+                        hx-target="#transactionTableBody"
+                        hx-include="[name='q']">
+                    <option value="">All Loan Statuses</option>
+                    {% for val, label in statuses %}
+                        <option value="{{ val }}" {% if status_filter == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Loan #</th>
+                        <th>Book &amp; Barcode</th>
+                        <th>Borrower</th>
+                        <th>Issue Date</th>
+                        <th>Due Date</th>
+                        <th>Return Date</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="transactionTableBody">
+                    {% include 'transactions/partials/transaction_rows.html' %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+            <nav class="mt-4 d-flex justify-content-center">
+                <ul class="pagination pagination-sm">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ query }}&status={{ status_filter }}">Previous</a>
+                        </li>
+                    {% endif %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                    </li>
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ query }}&status={{ status_filter }}">Next</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

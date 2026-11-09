@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+
+{% block title %}Book Catalog | Apex Library{% endblock %}
+{% block page_title %}Library Catalog{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body p-4">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+            <div>
+                <h4 class="fw-bold mb-1 text-dark">Explore Library Catalog</h4>
+                <p class="text-muted small mb-0">Browse and search titles, authors, categories and physical copies.</p>
+            </div>
+            {% if user.is_authenticated and user.is_staff_member %}
+                <a href="{% url 'library:book_create' %}" class="btn btn-primary d-flex align-items-center gap-2">
+                    <i class="bi bi-plus-lg"></i>
+                    <span>Add New Book</span>
+                </a>
+            {% endif %}
+        </div>
+
+        <!-- Realtime Search and Filter Bar -->
+        <form id="catalogFilterForm" class="row g-3 align-items-center mb-4">
+            <div class="col-12 col-md-6 col-lg-5">
+                <div class="input-group">
+                    <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text"
+                           name="q"
+                           value="{{ query }}"
+                           class="form-control"
+                           placeholder="Search by title, author, ISBN, summary..."
+                           hx-get="{% url 'library:catalog' %}"
+                           hx-trigger="keyup changed delay:300ms, search"
+                           hx-target="#catalogContainer"
+                           hx-indicator="#catalogSearchSpinner"
+                           hx-include="#catalogFilterForm">
+                    <span class="input-group-text bg-white htmx-indicator" id="catalogSearchSpinner">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                    </span>
+                </div>
+            </div>
+
+            <div class="col-12 col-sm-6 col-md-3">
+                <select name="category"
+                        class="form-select"
+                        hx-get="{% url 'library:catalog' %}"
+                        hx-trigger="change"
+                        hx-target="#catalogContainer"
+                        hx-include="#catalogFilterForm">
+                    <option value="">All Categories</option>
+                    {% for cat in categories %}
+                        <option value="{{ cat.id }}" {% if category_id == cat.id|stringformat:"s" %}selected{% endif %}>
+                            {{ cat.name }} ({{ cat.books_count }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-12 col-sm-6 col-md-3">
+                <div class="form-check form-switch pt-1">
+                    <input class="form-check-input"
+                           type="checkbox"
+                           role="switch"
+                           id="availableSwitch"
+                           name="available"
+                           value="true"
+                           {% if available_only %}checked{% endif %}
+                           hx-get="{% url 'library:catalog' %}"
+                           hx-trigger="change"
+                           hx-target="#catalogContainer"
+                           hx-include="#catalogFilterForm">
+                    <label class="form-check-label small fw-semibold text-muted" for="availableSwitch">Available only</label>
+                </div>
+            </div>
+        </form>
+
+        <!-- Dynamic Container for HTMX -->
+        <div id="catalogContainer">
+            {% include 'library/partials/catalog_grid.html' %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lms-web
+  namespace: library-system
+  labels:
+    app: lms-web
+    app.kubernetes.io/name: library-management-system
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: lms-web
+  template:
+    metadata:
+      labels:
+        app: lms-web
+    spec:
+      containers:
+        - name: django-app
+          image: image-registry.openshift-image-registry.svc:5000/library-system/lms-web:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+              name: http
+          envFrom:
+            - configMapRef:
+                name: lms-config
+            - secretRef:
+                name: lms-secrets
+          volumeMounts:
+            - name: media-storage
+              mountPath: /app/media
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "768Mi"
+              cpu: "500m"
+          readinessProbe:
+            httpGet:
+              path: /login/
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet:
+              path: /login/
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 5
+      volumes:
+        - name: media-storage
+          persistentVolumeClaim:
+            claimName: lms-media-pvc

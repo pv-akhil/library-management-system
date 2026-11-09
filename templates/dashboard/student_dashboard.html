@@ -1,0 +1,186 @@
+{% extends 'base.html' %}
+
+{% block title %}Student Dashboard | Apex Library{% endblock %}
+{% block page_title %}Welcome, {{ user.first_name|default:user.username }}!{% endblock %}
+
+{% block content %}
+<!-- Quick KPI Cards for Student -->
+<div class="row g-3 mb-4">
+    <div class="col-12 col-md-4">
+        <div class="card stat-card bg-white p-3 h-100">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small text-uppercase fw-bold">Currently Borrowed</span>
+                    <h3 class="fw-bold mb-0 text-primary">{{ my_active_loans.count }}</h3>
+                    <div class="small text-muted mt-1">Allowed limit: {{ MAX_BOOKS_BORROWED_STUDENT|default:3 }} books</div>
+                </div>
+                <div class="stat-icon bg-primary-subtle text-primary">
+                    <i class="bi bi-book-half"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-md-4">
+        <div class="card stat-card bg-white p-3 h-100">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small text-uppercase fw-bold">Active Reservations</span>
+                    <h3 class="fw-bold mb-0 text-info">{{ my_reservations.count }}</h3>
+                    <div class="small text-muted mt-1">Waitlist queue positions</div>
+                </div>
+                <div class="stat-icon bg-info-subtle text-info">
+                    <i class="bi bi-bookmark-heart"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-md-4">
+        <div class="card stat-card bg-white p-3 h-100">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small text-uppercase fw-bold">Unpaid Fine Balance</span>
+                    <h3 class="fw-bold mb-0 {% if my_unpaid_fines > 0 %}text-danger{% else %}text-success{% endif %}">
+                        ${{ my_unpaid_fines }}
+                    </h3>
+                    <div class="small text-muted mt-1">{% if my_unpaid_fines > 0 %}Clear at circulation desk{% else %}No outstanding dues{% endif %}</div>
+                </div>
+                <div class="stat-icon {% if my_unpaid_fines > 0 %}bg-danger-subtle text-danger{% else %}bg-success-subtle text-success{% endif %}">
+                    <i class="bi bi-wallet2"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Active Loans and Reservations Row -->
+<div class="row g-4 mb-4">
+    <!-- Active Loans Table -->
+    <div class="col-12 col-lg-7">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-collection me-2 text-primary"></i>My Active Loans</h6>
+                <a href="{% url 'transactions:my_loans' %}" class="btn btn-sm btn-outline-primary">View Full History</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Book Title</th>
+                                <th>Due Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for loan in my_active_loans %}
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">{{ loan.book_copy.book.title }}</div>
+                                    <div class="small text-muted font-monospace">{{ loan.book_copy.barcode }}</div>
+                                </td>
+                                <td>
+                                    <span class="{% if loan.is_overdue %}text-danger fw-bold{% else %}text-dark{% endif %}">
+                                        {{ loan.due_date|date:"M d, Y" }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if loan.status == 'OVERDUE' %}
+                                        <span class="badge bg-danger">Overdue</span>
+                                    {% else %}
+                                        <span class="badge bg-success">On Loan</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center py-4 text-muted">
+                                    You have no books on loan right now.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Reservations Table -->
+    <div class="col-12 col-lg-5">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-bookmark-check me-2 text-info"></i>My Waitlist Queue</h6>
+                <a href="{% url 'reservations:reservation_list' %}" class="btn btn-sm btn-outline-info">Manage</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Book Title</th>
+                                <th>Position</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for res in my_reservations %}
+                            <tr>
+                                <td class="text-truncate" style="max-width: 140px;">{{ res.book.title }}</td>
+                                <td><span class="badge bg-secondary font-monospace">#{{ res.queue_position }}</span></td>
+                                <td>
+                                    {% if res.status == 'APPROVED' %}
+                                        <span class="badge bg-success">Ready for Pickup!</span>
+                                    {% else %}
+                                        <span class="badge bg-warning text-dark">Queued</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center py-4 text-muted">
+                                    No active reservations.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recommended / New Additions Carousel -->
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-stars me-2 text-warning"></i>Recent Library Additions</h6>
+        <a href="{% url 'library:catalog' %}" class="btn btn-sm btn-primary">Browse All Books</a>
+    </div>
+    <div class="card-body p-4">
+        <div class="row g-3">
+            {% for b in recent_books %}
+            <div class="col-6 col-md-4 col-lg-2">
+                <div class="card h-100 border-0 shadow-sm text-center">
+                    <div class="book-cover-container" style="height: 140px;">
+                        {% if b.cover_image %}
+                            <img src="{{ b.cover_image.url }}" alt="{{ b.title }}" class="book-cover-img">
+                        {% else %}
+                            <i class="bi bi-book text-white-50 fs-2"></i>
+                        {% endif %}
+                    </div>
+                    <div class="card-body p-2">
+                        <div class="small fw-semibold text-truncate mb-1" title="{{ b.title }}">{{ b.title }}</div>
+                        <a href="{% url 'library:book_detail' b.id %}" class="btn btn-sm btn-outline-primary py-0 px-2 small" style="font-size: 0.75rem;">
+                            View
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+

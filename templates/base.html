@@ -1,0 +1,287 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#2563eb">
+    <meta name="description" content="Production-ready enterprise library management, circulation, catalog and reservation system.">
+    
+    <title>{% block title %}Apex Library Management System{% endblock %}</title>
+
+    <!-- PWA Manifest & Favicon -->
+    <link rel="manifest" href="{% url 'pwa_manifest' %}">
+    <link rel="icon" type="image/png" href="{% static 'img/icon-192.png' %}">
+    <link rel="apple-touch-icon" href="{% static 'img/icon-192.png' %}">
+
+    <!-- Bootstrap 5.3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
+    {% block extra_head %}{% endblock %}
+</head>
+<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+
+    <div class="app-wrapper">
+        <!-- Sidebar Backdrop for Mobile -->
+        <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+        <!-- Sidebar Navigation -->
+        <aside class="app-sidebar" id="appSidebar">
+            <div class="sidebar-brand">
+                <i class="bi bi-book-half"></i>
+                <span>Apex Library</span>
+            </div>
+
+            <div class="sidebar-menu">
+                <div class="menu-header">Main Menu</div>
+                
+                <a href="{% url 'dashboard:index' %}" class="sidebar-link {% if request.resolver_match.app_name == 'dashboard' and request.resolver_match.url_name == 'index' %}active{% endif %}">
+                    <i class="bi bi-speedometer2"></i>
+                    <span>Dashboard</span>
+                </a>
+
+                <a href="{% url 'library:catalog' %}" class="sidebar-link {% if request.resolver_match.app_name == 'library' and request.resolver_match.url_name == 'catalog' %}active{% endif %}">
+                    <i class="bi bi-journal-richtext"></i>
+                    <span>Book Catalog</span>
+                </a>
+
+                {% if user.is_authenticated and user.is_staff_member %}
+                    <div class="menu-header">Circulation</div>
+
+                    <a href="{% url 'transactions:issue_book' %}" class="sidebar-link {% if request.resolver_match.url_name == 'issue_book' %}active{% endif %}">
+                        <i class="bi bi-box-arrow-up-right"></i>
+                        <span>Issue Book</span>
+                    </a>
+
+                    <a href="{% url 'transactions:return_book' %}" class="sidebar-link {% if request.resolver_match.url_name == 'return_book' %}active{% endif %}">
+                        <i class="bi bi-box-arrow-in-down-left"></i>
+                        <span>Return Book</span>
+                    </a>
+
+                    <a href="{% url 'transactions:circulation_list' %}" class="sidebar-link {% if request.resolver_match.url_name == 'circulation_list' %}active{% endif %}">
+                        <i class="bi bi-arrow-left-right"></i>
+                        <span>Circulation Log</span>
+                        {% if staff_overdue_count %}
+                            <span class="badge bg-danger rounded-pill ms-auto">{{ staff_overdue_count }}</span>
+                        {% endif %}
+                    </a>
+
+                    <a href="{% url 'transactions:fines_list' %}" class="sidebar-link {% if request.resolver_match.url_name == 'fines_list' %}active{% endif %}">
+                        <i class="bi bi-cash-coin"></i>
+                        <span>Fines & Overdues</span>
+                        {% if staff_unpaid_fines_count %}
+                            <span class="badge bg-warning text-dark rounded-pill ms-auto">{{ staff_unpaid_fines_count }}</span>
+                        {% endif %}
+                    </a>
+
+                    <div class="menu-header">Management</div>
+
+                    <a href="{% url 'reservations:reservation_list' %}" class="sidebar-link {% if request.resolver_match.app_name == 'reservations' %}active{% endif %}">
+                        <i class="bi bi-bookmark-check"></i>
+                        <span>Reservations</span>
+                        {% if staff_pending_res_count %}
+                            <span class="badge bg-info text-dark rounded-pill ms-auto">{{ staff_pending_res_count }}</span>
+                        {% endif %}
+                    </a>
+
+                    <a href="{% url 'accounts:member_list' %}" class="sidebar-link {% if request.resolver_match.app_name == 'accounts' and 'member' in request.resolver_match.url_name %}active{% endif %}">
+                        <i class="bi bi-people"></i>
+                        <span>Members</span>
+                    </a>
+
+                    <a href="{% url 'library:book_create' %}" class="sidebar-link {% if request.resolver_match.url_name == 'book_create' %}active{% endif %}">
+                        <i class="bi bi-plus-circle"></i>
+                        <span>Add New Book</span>
+                    </a>
+
+                    <a href="{% url 'library:category_list' %}" class="sidebar-link {% if request.resolver_match.url_name == 'category_list' %}active{% endif %}">
+                        <i class="bi bi-tags"></i>
+                        <span>Categories</span>
+                    </a>
+
+                {% elif user.is_authenticated %}
+                    <!-- Student Navigation -->
+                    <div class="menu-header">My Library</div>
+
+                    <a href="{% url 'transactions:my_loans' %}" class="sidebar-link {% if request.resolver_match.url_name == 'my_loans' %}active{% endif %}">
+                        <i class="bi bi-collection"></i>
+                        <span>My Loans</span>
+                        {% if user_active_loans_count %}
+                            <span class="badge bg-primary rounded-pill ms-auto">{{ user_active_loans_count }}</span>
+                        {% endif %}
+                    </a>
+
+                    <a href="{% url 'reservations:reservation_list' %}" class="sidebar-link {% if request.resolver_match.app_name == 'reservations' %}active{% endif %}">
+                        <i class="bi bi-bookmark-heart"></i>
+                        <span>My Reservations</span>
+                    </a>
+
+                    <a href="{% url 'transactions:fines_list' %}" class="sidebar-link {% if request.resolver_match.url_name == 'fines_list' %}active{% endif %}">
+                        <i class="bi bi-credit-card"></i>
+                        <span>My Fines</span>
+                        {% if user_unpaid_fines_count %}
+                            <span class="badge bg-warning text-dark rounded-pill ms-auto">{{ user_unpaid_fines_count }}</span>
+                        {% endif %}
+                    </a>
+                {% endif %}
+
+                <div class="menu-header">Developer & System</div>
+                <a href="/api/docs/" target="_blank" class="sidebar-link">
+                    <i class="bi bi-code-slash"></i>
+                    <span>REST API Swagger</span>
+                </a>
+                {% if user.is_authenticated and user.is_admin_role %}
+                    <a href="/admin/" target="_blank" class="sidebar-link">
+                        <i class="bi bi-shield-lock"></i>
+                        <span>Django Admin</span>
+                    </a>
+                {% endif %}
+            </div>
+
+            <!-- User Footer in Sidebar -->
+            {% if user.is_authenticated %}
+                <div class="sidebar-user">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2 fw-bold" style="width: 38px; height: 38px;">
+                            {{ user.first_name|first|default:user.username|first|upper }}
+                        </div>
+                        <div class="overflow-hidden flex-grow-1">
+                            <div class="text-white text-truncate fw-semibold small">{{ user.get_full_name|default:user.username }}</div>
+                            <div class="badge bg-secondary font-monospace" style="font-size: 0.65rem;">{{ user.get_role_display }}</div>
+                        </div>
+                        <a href="{% url 'logout' %}" class="text-secondary hover-white ms-1" title="Log out">
+                            <i class="bi bi-box-arrow-right fs-5"></i>
+                        </a>
+                    </div>
+                </div>
+            {% endif %}
+        </aside>
+
+        <!-- Main Wrapper -->
+        <div class="app-main">
+            <!-- Top Navbar -->
+            <header class="top-navbar">
+                <div class="d-flex align-items-center gap-2">
+                    <button class="btn btn-sm btn-outline-secondary d-lg-none" id="sidebarToggle" type="button" aria-label="Toggle Navigation">
+                        <i class="bi bi-list fs-5"></i>
+                    </button>
+                    <h5 class="mb-0 fw-semibold text-dark d-none d-sm-block">{% block page_title %}Dashboard{% endblock %}</h5>
+                </div>
+
+                <div class="d-flex align-items-center gap-3">
+                    <a href="{% url 'library:catalog' %}" class="btn btn-sm btn-light border d-none d-md-flex align-items-center gap-1">
+                        <i class="bi bi-search text-muted"></i>
+                        <span class="text-muted">Search catalog...</span>
+                    </a>
+
+                    {% if user.is_authenticated %}
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-person-circle text-primary"></i>
+                                <span class="d-none d-md-inline">{{ user.username }}</span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                <li class="px-3 py-1">
+                                    <div class="small fw-bold text-dark">{{ user.get_full_name|default:user.username }}</div>
+                                    <div class="text-muted small">{{ user.email }}</div>
+                                    <div class="badge bg-light text-dark border mt-1">{{ user.member_id }}</div>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{% url 'accounts:profile' %}"><i class="bi bi-person me-2"></i> My Profile</a></li>
+                                {% if not user.is_staff_member %}
+                                    <li><a class="dropdown-item" href="{% url 'transactions:my_loans' %}"><i class="bi bi-collection me-2"></i> My Loans</a></li>
+                                {% endif %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-danger" href="{% url 'logout' %}"><i class="bi bi-box-arrow-right me-2"></i> Log Out</a></li>
+                            </ul>
+                        </div>
+                    {% else %}
+                        <a href="{% url 'login' %}" class="btn btn-sm btn-primary">Log In</a>
+                        <a href="{% url 'register' %}" class="btn btn-sm btn-outline-primary">Register</a>
+                    {% endif %}
+                </div>
+            </header>
+
+            <!-- Alerts Container -->
+            <div class="container-fluid px-4 pt-3">
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show shadow-sm" role="alert">
+                            {% if message.tags == 'error' %}
+                                <i class="bi bi-exclamation-octagon-fill me-2"></i>
+                            {% elif message.tags == 'success' %}
+                                <i class="bi bi-check-circle-fill me-2"></i>
+                            {% elif message.tags == 'warning' %}
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            {% else %}
+                                <i class="bi bi-info-circle-fill me-2"></i>
+                            {% endif %}
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            <!-- Main Page Content -->
+            <main class="content-body">
+                {% block content %}{% endblock %}
+            </main>
+
+            <!-- Footer -->
+            <footer class="py-3 px-4 bg-white border-top text-muted small text-center text-md-start d-flex flex-column flex-md-row justify-content-between align-items-center">
+                <div>&copy; 2026 Apex Library Management System. Production-Ready Deployment.</div>
+                <div class="mt-2 mt-md-0">
+                    <span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-shield-check me-1"></i> PostgreSQL &amp; OpenShift Ready</span>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5.3 Bundle JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+
+    <!-- Mobile Sidebar Toggle & PWA Service Worker -->
+    <script>
+        // Sidebar Toggle
+        const sidebar = document.getElementById('appSidebar');
+        const backdrop = document.getElementById('sidebarBackdrop');
+        const toggleBtn = document.getElementById('sidebarToggle');
+
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', () => {
+                sidebar.classList.toggle('show');
+                backdrop.classList.toggle('show');
+            });
+        }
+        if (backdrop) {
+            backdrop.addEventListener('click', () => {
+                sidebar.classList.remove('show');
+                backdrop.classList.remove('show');
+            });
+        }
+
+        // PWA Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('PWA Service Worker registered:', reg.scope))
+                    .catch(err => console.log('PWA Service Worker registration failed:', err));
+            });
+        }
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
+

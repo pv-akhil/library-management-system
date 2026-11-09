@@ -1,0 +1,53 @@
+{% for t in page_obj %}
+<tr>
+    <td>
+        <span class="badge bg-secondary font-monospace">{{ t.id }}</span>
+    </td>
+    <td>
+        <div class="fw-semibold text-dark">{{ t.book_copy.book.title }}</div>
+        <div class="small text-muted font-monospace"><i class="bi bi-upc me-1"></i>{{ t.book_copy.barcode }}</div>
+    </td>
+    <td>
+        <a href="{% url 'accounts:member_detail' t.user.id %}" class="fw-semibold text-decoration-none text-dark">
+            {{ t.user.get_full_name|default:t.user.username }}
+        </a>
+        <div class="small text-muted font-monospace">{{ t.user.member_id }}</div>
+    </td>
+    <td>{{ t.issue_date|date:"M d, Y" }}</td>
+    <td>
+        <span class="{% if t.is_overdue and t.status != 'RETURNED' %}text-danger fw-bold{% endif %}">
+            {{ t.due_date|date:"M d, Y" }}
+        </span>
+    </td>
+    <td>
+        {% if t.return_date %}
+            {{ t.return_date|date:"M d, Y" }}
+        {% else %}
+            <span class="text-muted">-</span>
+        {% endif %}
+    </td>
+    <td>
+        {% if t.status == 'RETURNED' %}
+            <span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check2-circle me-1"></i> Returned</span>
+        {% elif t.status == 'OVERDUE' %}
+            <span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="bi bi-clock-history me-1"></i> Overdue ({{ t.overdue_days }}d)</span>
+        {% else %}
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle"><i class="bi bi-book me-1"></i> On Loan</span>
+        {% endif %}
+    </td>
+    <td class="text-end">
+        {% if t.status != 'RETURNED' and user.is_staff_member %}
+            <a href="{% url 'transactions:return_book' %}?barcode={{ t.book_copy.barcode }}" class="btn btn-sm btn-outline-success">
+                Return Check-in
+            </a>
+        {% endif %}
+    </td>
+</tr>
+{% empty %}
+<tr>
+    <td colspan="8" class="text-center py-4 text-muted">
+        No circulation records found matching your filters.
+    </td>
+</tr>
+{% endfor %}
+

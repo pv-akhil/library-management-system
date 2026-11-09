@@ -1,0 +1,197 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ book.title }} | Apex Library{% endblock %}
+{% block page_title %}Book Details{% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-4">
+    <!-- Left Column: Cover & Quick Actions -->
+    <div class="col-12 col-md-4 col-lg-3">
+        <div class="card shadow-sm border-0 overflow-hidden mb-3">
+            <div class="book-cover-container" style="height: 320px;">
+                {% if book.cover_image %}
+                    <img src="{{ book.cover_image.url }}" alt="{{ book.title }}" class="book-cover-img">
+                {% else %}
+                    <div class="book-cover-placeholder">
+                        <i class="bi bi-journal-text fs-1"></i>
+                        <span class="mt-2 text-white-50">No Cover Available</span>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="card-body p-3 text-center">
+                <div class="mb-2">
+                    {% if book.available_copies_count > 0 %}
+                        <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 fs-6">
+                            <i class="bi bi-check-circle me-1"></i> {{ book.available_copies_count }} Available
+                        </span>
+                    {% else %}
+                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2 fs-6">
+                            <i class="bi bi-x-circle me-1"></i> All Copies Checked Out
+                        </span>
+                    {% endif %}
+                </div>
+                <div class="text-muted small">Total Copies in Collection: {{ book.total_copies_count }}</div>
+            </div>
+        </div>
+
+        <!-- Student Self-Service Actions -->
+        {% if user.is_authenticated and not user.is_staff_member %}
+            <div class="card shadow-sm p-3 mb-3">
+                {% if user_has_active_reservation %}
+                    <button class="btn btn-secondary w-100 disabled">
+                        <i class="bi bi-bookmark-check me-1"></i> Already Reserved
+                    </button>
+                    <p class="text-muted small text-center mt-2 mb-0">Check your reservation position in <a href="{% url 'reservations:reservation_list' %}">My Reservations</a>.</p>
+                {% else %}
+                    <a href="{% url 'reservations:reserve_book' book.id %}" class="btn btn-primary w-100 fw-semibold">
+                        <i class="bi bi-bookmark-plus me-1"></i> Place Reservation
+                    </a>
+                    <p class="text-muted small text-center mt-2 mb-0">Join the waiting queue for this book title.</p>
+                {% endif %}
+            </div>
+        {% endif %}
+
+        <!-- Staff Action Card -->
+        {% if user.is_authenticated and user.is_staff_member %}
+            <div class="card shadow-sm p-3">
+                <div class="fw-semibold small text-uppercase text-muted mb-2">Staff Controls</div>
+                <div class="d-grid gap-2">
+                    <a href="{% url 'library:copy_add' book.id %}" class="btn btn-sm btn-success">
+                        <i class="bi bi-plus-circle me-1"></i> Add Inventory Copy
+                    </a>
+                    <a href="{% url 'library:book_edit' book.id %}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-pencil me-1"></i> Edit Book Details
+                    </a>
+                    <a href="{% url 'library:book_delete' book.id %}" class="btn btn-sm btn-outline-danger">
+                        <i class="bi bi-trash me-1"></i> Delete Book
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Right Column: Bibliographic Details -->
+    <div class="col-12 col-md-8 col-lg-9">
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-body p-4">
+                <div class="badge bg-primary-subtle text-primary border border-primary-subtle mb-2">
+                    {{ book.category.name|default:"General Collection" }}
+                </div>
+                <h3 class="fw-bold text-dark mb-1">{{ book.title }}</h3>
+                <div class="fs-6 text-muted mb-3">
+                    By <span class="fw-semibold text-dark">{{ book.author_names }}</span>
+                </div>
+
+                <!-- Metadata Grid -->
+                <div class="row g-3 py-3 border-top border-bottom my-3">
+                    <div class="col-6 col-sm-4 col-md-3">
+                        <div class="small text-muted">ISBN</div>
+                        <div class="fw-semibold font-monospace">{{ book.isbn }}</div>
+                    </div>
+                    <div class="col-6 col-sm-4 col-md-3">
+                        <div class="small text-muted">Publisher</div>
+                        <div class="fw-semibold">{{ book.publisher.name|default:"N/A" }}</div>
+                    </div>
+                    <div class="col-6 col-sm-4 col-md-2">
+                        <div class="small text-muted">Year</div>
+                        <div class="fw-semibold">{{ book.publication_year|default:"N/A" }}</div>
+                    </div>
+                    <div class="col-6 col-sm-4 col-md-2">
+                        <div class="small text-muted">Pages</div>
+                        <div class="fw-semibold">{{ book.pages|default:"N/A" }}</div>
+                    </div>
+                    <div class="col-6 col-sm-4 col-md-2">
+                        <div class="small text-muted">Language</div>
+                        <div class="fw-semibold">{{ book.language }}</div>
+                    </div>
+                </div>
+
+                <!-- Summary -->
+                <h6 class="fw-bold text-dark mb-2">Summary / Overview</h6>
+                <p class="text-secondary leading-relaxed mb-0">
+                    {{ book.summary|default:"No synopsis provided for this catalog entry."|linebreaks }}
+                </p>
+            </div>
+        </div>
+
+        <!-- Physical Inventory Copies -->
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                <h6 class="mb-0 fw-bold text-dark">
+                    <i class="bi bi-upc-scan me-2 text-primary"></i>Physical Copies &amp; Shelf Locations
+                </h6>
+                {% if user.is_authenticated and user.is_staff_member %}
+                    <a href="{% url 'library:copy_add' book.id %}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-plus me-1"></i> Add Copy
+                    </a>
+                {% endif %}
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Barcode / Accession</th>
+                                <th>Shelf Location</th>
+                                <th>Condition</th>
+                                <th>Status</th>
+                                {% if user.is_authenticated and user.is_staff_member %}
+                                    <th class="text-end">Actions</th>
+                                {% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for copy in copies %}
+                            <tr>
+                                <td>
+                                    <span class="badge bg-dark font-monospace">{{ copy.barcode }}</span>
+                                </td>
+                                <td><i class="bi bi-geo-alt me-1 text-muted"></i>{{ copy.rack_location|default:"Main Stacks" }}</td>
+                                <td>
+                                    <span class="badge bg-light text-dark border">{{ copy.get_condition_display }}</span>
+                                </td>
+                                <td>
+                                    {% if copy.status == 'AVAILABLE' %}
+                                        <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i> Available</span>
+                                    {% elif copy.status == 'ISSUED' %}
+                                        <span class="badge bg-primary"><i class="bi bi-person-check me-1"></i> Issued</span>
+                                    {% elif copy.status == 'RESERVED' %}
+                                        <span class="badge bg-warning text-dark"><i class="bi bi-bookmark me-1"></i> Reserved</span>
+                                    {% elif copy.status == 'MAINTENANCE' %}
+                                        <span class="badge bg-secondary">Maintenance</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Lost</span>
+                                    {% endif %}
+                                </td>
+                                {% if user.is_authenticated and user.is_staff_member %}
+                                <td class="text-end">
+                                    {% if copy.status == 'AVAILABLE' %}
+                                        <a href="{% url 'transactions:issue_book' %}?barcode={{ copy.barcode }}" class="btn btn-sm btn-primary py-0 px-2" title="Issue this copy">
+                                            Issue
+                                        </a>
+                                    {% endif %}
+                                    <a href="{% url 'library:copy_edit' copy.id %}" class="btn btn-sm btn-outline-secondary py-0 px-2 ms-1" title="Edit copy">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="{% url 'library:copy_delete' copy.id %}" class="btn btn-sm btn-outline-danger py-0 px-2 ms-1" title="Delete copy">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </td>
+                                {% endif %}
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-muted">
+                                    No physical inventory copies registered for this book yet.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

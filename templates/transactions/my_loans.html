@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+
+{% block title %}My Borrowed Books | Apex Library{% endblock %}
+{% block page_title %}My Loans &amp; Circulation History{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Active Loans Section -->
+    <div class="col-12">
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-book-half me-2 text-primary"></i>Currently Borrowed Books</h6>
+                <span class="badge bg-primary rounded-pill">{{ active_loans.count }} Books</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Book Title</th>
+                                <th>Barcode</th>
+                                <th>Issue Date</th>
+                                <th>Due Date</th>
+                                <th>Status</th>
+                                <th class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for loan in active_loans %}
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold text-dark">{{ loan.book_copy.book.title }}</div>
+                                    <div class="small text-muted">{{ loan.book_copy.book.author_names }}</div>
+                                </td>
+                                <td><span class="badge bg-light text-dark border font-monospace">{{ loan.book_copy.barcode }}</span></td>
+                                <td>{{ loan.issue_date|date:"M d, Y" }}</td>
+                                <td>
+                                    {% if loan.is_overdue %}
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                                            <i class="bi bi-exclamation-circle me-1"></i> {{ loan.due_date|date:"M d, Y" }} (Overdue!)
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                            <i class="bi bi-calendar-check me-1"></i> Due {{ loan.due_date|date:"M d, Y" }}
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if loan.status == 'OVERDUE' %}
+                                        <span class="badge bg-danger">Overdue ({{ loan.overdue_days }} days)</span>
+                                    {% else %}
+                                        <span class="badge bg-primary">On Loan</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <a href="{% url 'library:book_detail' loan.book_copy.book.id %}" class="btn btn-sm btn-outline-primary">
+                                        View Book
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center py-5 text-muted">
+                                    <i class="bi bi-journal-check fs-1 d-block mb-2 text-secondary"></i>
+                                    You have no active loans right now.
+                                    <div class="mt-2">
+                                        <a href="{% url 'library:catalog' %}" class="btn btn-sm btn-primary">Browse Catalog</a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Outstanding Fines Section (If Any) -->
+    {% if unpaid_fines %}
+    <div class="col-12">
+        <div class="card shadow-sm border-danger mb-4">
+            <div class="card-header bg-danger text-white py-3">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-exclamation-triangle-fill me-2"></i>Outstanding Fines</h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Book Title</th>
+                                <th>Barcode</th>
+                                <th>Amount</th>
+                                <th>Reason</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for f in unpaid_fines %}
+                            <tr>
+                                <td class="fw-semibold">{{ f.transaction.book_copy.book.title }}</td>
+                                <td><span class="badge bg-light text-dark border font-monospace">{{ f.transaction.book_copy.barcode }}</span></td>
+                                <td class="text-danger fw-bold fs-6">${{ f.amount }}</td>
+                                <td class="small text-muted">{{ f.notes|default:"Overdue fine" }}</td>
+                                <td>
+                                    <span class="badge bg-warning text-dark">Pay at Circulation Desk</span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Returned History Section -->
+    <div class="col-12">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white py-3">
+                <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-clock-history me-2 text-muted"></i>Past Borrowing History</h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Book Title</th>
+                                <th>Barcode</th>
+                                <th>Borrowed On</th>
+                                <th>Returned On</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for hist in history_loans %}
+                            <tr>
+                                <td class="fw-semibold">{{ hist.book_copy.book.title }}</td>
+                                <td><span class="badge bg-light text-muted border font-monospace">{{ hist.book_copy.barcode }}</span></td>
+                                <td>{{ hist.issue_date|date:"M d, Y" }}</td>
+                                <td>{{ hist.return_date|date:"M d, Y" }}</td>
+                                <td><span class="badge bg-success-subtle text-success border border-success-subtle">Returned</span></td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-muted">No past loans in your history.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

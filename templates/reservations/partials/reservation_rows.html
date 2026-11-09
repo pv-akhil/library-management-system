@@ -1,0 +1,57 @@
+{% for r in page_obj %}
+<tr>
+    <td>
+        <span class="badge bg-secondary font-monospace">#{{ r.queue_position }}</span>
+    </td>
+    <td>
+        <div class="fw-semibold text-dark">{{ r.book.title }}</div>
+        <div class="small text-muted font-monospace">ISBN: {{ r.book.isbn }}</div>
+    </td>
+    <td>
+        <a href="{% url 'accounts:member_detail' r.user.id %}" class="fw-semibold text-decoration-none text-dark">
+            {{ r.user.get_full_name|default:r.user.username }}
+        </a>
+        <div class="small text-muted font-monospace">{{ r.user.member_id }}</div>
+    </td>
+    <td>{{ r.reserved_at|date:"M d, Y H:i" }}</td>
+    <td>
+        {% if r.expiry_date %}
+            <span class="text-danger fw-semibold">{{ r.expiry_date|date:"M d, Y" }}</span>
+        {% else %}
+            <span class="text-muted">-</span>
+        {% endif %}
+    </td>
+    <td>
+        {% if r.status == 'APPROVED' %}
+            <span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-bell-fill me-1"></i> Ready for Pickup</span>
+        {% elif r.status == 'PENDING' %}
+            <span class="badge bg-warning-subtle text-warning border border-warning-subtle"><i class="bi bi-hourglass-split me-1"></i> Waiting in Queue</span>
+        {% elif r.status == 'FULFILLED' %}
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle"><i class="bi bi-check2-all me-1"></i> Checked Out</span>
+        {% elif r.status == 'EXPIRED' %}
+            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Expired</span>
+        {% else %}
+            <span class="badge bg-light text-muted border">Cancelled</span>
+        {% endif %}
+    </td>
+    <td class="text-end">
+        {% if r.status == 'PENDING' and user.is_staff_member %}
+            <a href="{% url 'reservations:approve_reservation' r.id %}" class="btn btn-sm btn-outline-success me-1" title="Mark ready for pickup">
+                Approve
+            </a>
+        {% endif %}
+        {% if r.status in 'PENDING APPROVED' %}
+            <a href="{% url 'reservations:cancel_reservation' r.id %}" class="btn btn-sm btn-outline-danger" title="Cancel reservation">
+                Cancel
+            </a>
+        {% endif %}
+    </td>
+</tr>
+{% empty %}
+<tr>
+    <td colspan="7" class="text-center py-4 text-muted">
+        No reservations found matching criteria.
+    </td>
+</tr>
+{% endfor %}
+

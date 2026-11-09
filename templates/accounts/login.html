@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Sign In | Apex Library Management System{% endblock %}
+{% block page_title %}Account Sign In{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center py-4">
+    <div class="col-12 col-md-8 col-lg-5">
+        <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+            <div class="bg-primary text-white text-center py-4 px-3">
+                <i class="bi bi-book-half fs-1 mb-2 d-inline-block"></i>
+                <h4 class="fw-bold mb-1">Apex Library Portal</h4>
+                <p class="text-white-50 small mb-0">Sign in to manage loans, reservations, and inventory</p>
+            </div>
+
+            <div class="card-body p-4 p-md-5">
+                <form method="post" action="{% url 'login' %}">
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger py-2 small">
+                            {% for error in form.non_field_errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="{{ form.username.id_for_label }}">Username or Email</label>
+                        {{ form.username }}
+                        {% if form.username.errors %}
+                            <div class="text-danger small mt-1">{{ form.username.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="{{ form.password.id_for_label }}">Password</label>
+                        {{ form.password }}
+                        {% if form.password.errors %}
+                            <div class="text-danger small mt-1">{{ form.password.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div class="form-check">
+                            {{ form.remember_me }}
+                            <label class="form-check-label text-muted small" for="{{ form.remember_me.id_for_label }}">
+                                Remember me
+                            </label>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-lg w-100 fw-semibold mb-3">
+                        Sign In <i class="bi bi-arrow-right ms-1"></i>
+                    </button>
+                </form>
+
+                <div class="text-center text-muted small mb-4">
+                    New student? <a href="{% url 'register' %}" class="text-primary fw-semibold text-decoration-none">Create an account</a>
+                </div>
+
+                <!-- Demo Credentials Quick Helper -->
+                <div class="border-top pt-3">
+                    <div class="text-muted small fw-semibold mb-2 text-center text-uppercase" style="letter-spacing: 0.05em; font-size: 0.7rem;">Quick Demo Accounts</div>
+                    <div class="d-flex flex-wrap gap-2 justify-content-center">
+                        <button type="button" class="btn btn-sm btn-outline-secondary py-1" onclick="fillDemo('admin', 'AdminPass123!')">
+                            <i class="bi bi-shield-lock me-1"></i> Admin
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-primary py-1" onclick="fillDemo('librarian', 'LibPass123!')">
+                            <i class="bi bi-person-badge me-1"></i> Librarian
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-success py-1" onclick="fillDemo('student', 'StudentPass123!')">
+                            <i class="bi bi-mortarboard me-1"></i> Student
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function fillDemo(username, password) {
+        document.getElementById('{{ form.username.id_for_label }}').value = username;
+        document.getElementById('{{ form.password.id_for_label }}').value = password;
+    }
+</script>
+{% endblock %}
+

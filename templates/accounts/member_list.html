@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+
+{% block title %}Member Management | Apex Library{% endblock %}
+{% block page_title %}Member Directory &amp; Management{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm mb-4">
+    <div class="card-body p-4">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
+            <div>
+                <h5 class="fw-bold mb-1 text-dark">Institutional Members</h5>
+                <p class="text-muted small mb-0">Total registered members: <span class="fw-semibold text-primary">{{ total_count }}</span></p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{% url 'accounts:member_create' %}" class="btn btn-primary d-flex align-items-center gap-2">
+                    <i class="bi bi-person-plus"></i>
+                    <span>Add Member</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Filter Bar with HTMX -->
+        <div class="row g-2 mb-3">
+            <div class="col-12 col-md-8">
+                <div class="input-group">
+                    <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text"
+                           name="q"
+                           value="{{ query }}"
+                           class="form-control"
+                           placeholder="Search by name, email, username or Member ID..."
+                           hx-get="{% url 'accounts:member_list' %}"
+                           hx-trigger="keyup changed delay:300ms, search"
+                           hx-target="#memberTableBody"
+                           hx-indicator="#searchIndicator"
+                           hx-include="[name='role']">
+                    <span class="input-group-text bg-white htmx-indicator" id="searchIndicator">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                    </span>
+                </div>
+            </div>
+            <div class="col-12 col-md-4">
+                <select name="role"
+                        class="form-select"
+                        hx-get="{% url 'accounts:member_list' %}"
+                        hx-trigger="change"
+                        hx-target="#memberTableBody"
+                        hx-include="[name='q']">
+                    <option value="">All Roles</option>
+                    {% for val, label in roles %}
+                        <option value="{{ val }}" {% if role_filter == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Member ID</th>
+                        <th>Member Details</th>
+                        <th>Role</th>
+                        <th>Phone</th>
+                        <th>Status</th>
+                        <th>Joined</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="memberTableBody">
+                    {% include 'accounts/partials/member_rows.html' %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+            <nav class="mt-4 d-flex justify-content-center">
+                <ul class="pagination pagination-sm">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ query }}&role={{ role_filter }}">Previous</a>
+                        </li>
+                    {% endif %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                    </li>
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ query }}&role={{ role_filter }}">Next</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

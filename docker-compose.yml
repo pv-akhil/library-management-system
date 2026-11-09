@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: lms-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: library_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d library_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lms-django-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DJANGO_DEBUG: "False"
+      DJANGO_SECRET_KEY: "prod-docker-compose-secret-key-change-for-production"
+      DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1,web"
+      DATABASE_URL: "postgres://postgres:postgrespassword@db:5432/library_db"
+      RUN_SEED: "True"
+      DEFAULT_BORROW_DAYS: 14
+      FINE_PER_DAY: "1.00"
+    ports:
+      - "8000:8000"
+    volumes:
+      - library_media:/app/media
+
+volumes:
+  postgres_data:
+  library_media:

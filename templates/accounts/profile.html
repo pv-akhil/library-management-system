@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}My Profile | Apex Library{% endblock %}
+{% block page_title %}Member Profile{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-12 col-md-4">
+        <div class="card shadow-sm text-center p-4">
+            <div class="avatar-lg mx-auto bg-light rounded-circle d-flex align-items-center justify-content-center text-primary fw-bold fs-2 mb-3 shadow-sm" style="width: 90px; height: 90px;">
+                {% if user.avatar %}
+                    <img src="{{ user.avatar.url }}" alt="{{ user.username }}" class="rounded-circle w-100 h-100 object-fit-cover">
+                {% else %}
+                    {{ user.first_name|first|default:user.username|first|upper }}
+                {% endif %}
+            </div>
+            <h5 class="fw-bold mb-1">{{ user.get_full_name|default:user.username }}</h5>
+            <div class="text-muted small mb-2">{{ user.email }}</div>
+            
+            <div class="d-flex justify-content-center gap-2 mb-3">
+                <span class="badge bg-primary">{{ user.get_role_display }}</span>
+                <span class="badge bg-secondary font-monospace">{{ user.member_id }}</span>
+            </div>
+
+            <div class="text-start border-top pt-3 small text-muted">
+                <div class="mb-2"><i class="bi bi-calendar3 me-2"></i> Joined: {{ user.date_joined|date:"M d, Y" }}</div>
+                <div class="mb-2"><i class="bi bi-telephone me-2"></i> {{ user.phone|default:"No phone registered" }}</div>
+                <div><i class="bi bi-geo-alt me-2"></i> {{ user.address|default:"No address registered" }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h6 class="mb-0 fw-semibold text-dark"><i class="bi bi-pencil-square me-2 text-primary"></i>Edit Profile Details</h6>
+            </div>
+            <div class="card-body p-4">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {{ form|crispy }}
+                    <div class="mt-4 text-end">
+                        <button type="submit" class="btn btn-primary px-4 fw-semibold">
+                            Save Changes <i class="bi bi-check-lg ms-1"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

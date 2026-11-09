@@ -1,0 +1,84 @@
+<div class="row g-4" id="catalogCardsContainer">
+    {% for book in page_obj %}
+    <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+        <div class="card h-100 book-card shadow-sm border-0">
+            <!-- Cover Container -->
+            <div class="book-cover-container">
+                {% if book.cover_image %}
+                    <img src="{{ book.cover_image.url }}" alt="{{ book.title }}" class="book-cover-img">
+                {% else %}
+                    <div class="book-cover-placeholder">
+                        <i class="bi bi-book"></i>
+                        <span class="small fw-semibold text-white-50">{{ book.category.name|default:"General" }}</span>
+                    </div>
+                {% endif %}
+                <div class="position-absolute top-0 end-0 p-2">
+                    {% if book.available_copies_count > 0 %}
+                        <span class="badge bg-success shadow-sm"><i class="bi bi-check-circle me-1"></i> Available ({{ book.available_copies_count }})</span>
+                    {% else %}
+                        <span class="badge bg-danger shadow-sm"><i class="bi bi-x-circle me-1"></i> Checked Out</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Card Body -->
+            <div class="card-body d-flex flex-direction-column flex-column p-3">
+                <div class="small text-muted mb-1">{{ book.category.name|default:"General Collection" }}</div>
+                <h6 class="card-title fw-bold text-dark text-truncate-2 mb-1" title="{{ book.title }}">
+                    <a href="{% url 'library:book_detail' book.id %}" class="text-decoration-none text-dark hover-primary">
+                        {{ book.title }}
+                    </a>
+                </h6>
+                <div class="small text-muted mb-2 text-truncate">
+                    <i class="bi bi-pen me-1"></i>{{ book.author_names }}
+                </div>
+
+                <div class="mt-auto pt-2 border-top d-flex justify-content-between align-items-center">
+                    <span class="font-monospace text-muted small" style="font-size: 0.75rem;">ISBN: {{ book.isbn }}</span>
+                    <a href="{% url 'library:book_detail' book.id %}" class="btn btn-sm btn-outline-primary">
+                        Details <i class="bi bi-arrow-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12 text-center py-5">
+        <div class="text-muted">
+            <i class="bi bi-journal-x fs-1 d-block mb-2 text-secondary"></i>
+            <h5>No books found matching your criteria</h5>
+            <p class="small">Try adjusting keywords, ISBN, or category filters.</p>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Pagination -->
+{% if page_obj.has_other_pages %}
+<div class="d-flex justify-content-center mt-4">
+    <nav aria-label="Catalog pagination">
+        <ul class="pagination">
+            {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link"
+                       hx-get="{% url 'library:catalog' %}?page={{ page_obj.previous_page_number }}&q={{ query }}&category={{ category_id }}&available={{ available_only }}"
+                       hx-target="#catalogContainer"
+                       hx-push-url="true">Previous</a>
+                </li>
+            {% endif %}
+            <li class="page-item active">
+                <span class="page-link">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+            </li>
+            {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link"
+                       hx-get="{% url 'library:catalog' %}?page={{ page_obj.next_page_number }}&q={{ query }}&category={{ category_id }}&available={{ available_only }}"
+                       hx-target="#catalogContainer"
+                       hx-push-url="true">Next</a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
+{% endif %}
+

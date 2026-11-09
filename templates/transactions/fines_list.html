@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+
+{% block title %}Fines &amp; Overdues | Apex Library{% endblock %}
+{% block page_title %}Fines &amp; Penalties Management{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body p-4">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+            <div>
+                <h5 class="fw-bold mb-1 text-dark">Overdue Fines</h5>
+                <p class="text-muted small mb-0">Track and collect overdue and damage penalty payments.</p>
+            </div>
+            <!-- Filter Pills -->
+            <div class="btn-group btn-group-sm">
+                <a href="{% url 'transactions:fines_list' %}" class="btn btn-outline-secondary {% if not paid_filter %}active{% endif %}">All Fines</a>
+                <a href="{% url 'transactions:fines_list' %}?paid=false" class="btn btn-outline-danger {% if paid_filter == 'false' %}active{% endif %}">Unpaid Only</a>
+                <a href="{% url 'transactions:fines_list' %}?paid=true" class="btn btn-outline-success {% if paid_filter == 'true' %}active{% endif %}">Paid Only</a>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Loan #</th>
+                        <th>Member Details</th>
+                        <th>Book Title</th>
+                        <th>Fine Amount</th>
+                        <th>Payment Status</th>
+                        <th>Payment Method</th>
+                        <th>Date Paid</th>
+                        {% if user.is_staff_member %}
+                            <th class="text-end">Actions</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for f in page_obj %}
+                    <tr>
+                        <td><span class="badge bg-secondary font-monospace">{{ f.transaction.id }}</span></td>
+                        <td>
+                            <div class="fw-semibold text-dark">{{ f.transaction.user.get_full_name|default:f.transaction.user.username }}</div>
+                            <div class="small text-muted font-monospace">{{ f.transaction.user.member_id }}</div>
+                        </td>
+                        <td>
+                            <div class="fw-semibold text-dark">{{ f.transaction.book_copy.book.title }}</div>
+                            <div class="small text-muted font-monospace">{{ f.transaction.book_copy.barcode }}</div>
+                        </td>
+                        <td class="fw-bold {% if f.is_paid %}text-success{% else %}text-danger{% endif %} fs-6">
+                            ${{ f.amount }}
+                        </td>
+                        <td>
+                            {% if f.is_paid %}
+                                <span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle me-1"></i> Paid</span>
+                            {% else %}
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="bi bi-hourglass-split me-1"></i> Unpaid</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ f.get_payment_method_display|default:"-" }}</td>
+                        <td>{{ f.paid_at|date:"M d, Y"|default:"-" }}</td>
+                        {% if user.is_staff_member %}
+                        <td class="text-end">
+                            {% if not f.is_paid %}
+                                <a href="{% url 'transactions:pay_fine' f.id %}" class="btn btn-sm btn-primary">
+                                    <i class="bi bi-cash me-1"></i> Record Payment
+                                </a>
+                            {% else %}
+                                <span class="text-muted small"><i class="bi bi-check2-all text-success"></i> Settled</span>
+                            {% endif %}
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-4 text-muted">No fine records found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if page_obj.has_other_pages %}
+            <nav class="mt-4 d-flex justify-content-center">
+                <ul class="pagination pagination-sm">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}&paid={{ paid_filter }}">Previous</a>
+                        </li>
+                    {% endif %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                    </li>
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}&paid={{ paid_filter }}">Next</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Record Fine Payment | Apex Library{% endblock %}
+{% block page_title %}Record Fine Payment{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center py-3">
+    <div class="col-12 col-md-8 col-lg-6">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold mb-0 text-dark">Settle Fine Payment</h5>
+                <a href="{% url 'transactions:fines_list' %}" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i> Back to Fines
+                </a>
+            </div>
+            <div class="card-body p-4">
+                <!-- Summary Card -->
+                <div class="bg-light p-3 rounded-3 mb-4">
+                    <div class="row">
+                        <div class="col-6">
+                            <span class="small text-muted d-block">Member</span>
+                            <span class="fw-bold text-dark">{{ fine.transaction.user.get_full_name|default:fine.transaction.user.username }}</span>
+                            <div class="small text-muted font-monospace">{{ fine.transaction.user.member_id }}</div>
+                        </div>
+                        <div class="col-6 text-end">
+                            <span class="small text-muted d-block">Outstanding Amount</span>
+                            <span class="fw-bold text-danger fs-4">${{ fine.amount }}</span>
+                        </div>
+                    </div>
+                    <hr class="my-2">
+                    <div class="small text-muted">
+                        Book: <strong class="text-dark">{{ fine.transaction.book_copy.book.title }}</strong> (Barcode: {{ fine.transaction.book_copy.barcode }})
+                    </div>
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+                    {{ form|crispy }}
+                    <div class="mt-4 text-end">
+                        <a href="{% url 'transactions:fines_list' %}" class="btn btn-light border me-2">Cancel</a>
+                        <button type="submit" class="btn btn-primary px-4 fw-semibold">
+                            Confirm Settle &amp; Issue Receipt <i class="bi bi-check-circle ms-1"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

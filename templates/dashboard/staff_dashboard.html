@@ -1,0 +1,302 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin &amp; Librarian Dashboard | Apex Library{% endblock %}
+{% block page_title %}Operational Dashboard &amp; Analytics{% endblock %}
+
+{% block content %}
+<!-- Quick Action Toolbar -->
+<div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-4">
+    <div class="d-flex flex-wrap gap-2">
+        <a href="{% url 'transactions:issue_book' %}" class="btn btn-primary d-flex align-items-center gap-1 shadow-sm">
+            <i class="bi bi-box-arrow-up-right"></i> Issue Book
+        </a>
+        <a href="{% url 'transactions:return_book' %}" class="btn btn-success d-flex align-items-center gap-1 shadow-sm">
+            <i class="bi bi-box-arrow-in-down-left"></i> Return Book
+        </a>
+        <a href="{% url 'library:book_create' %}" class="btn btn-outline-primary d-flex align-items-center gap-1 bg-white">
+            <i class="bi bi-plus-circle"></i> Add Book
+        </a>
+    </div>
+    <div class="dropdown">
+        <button class="btn btn-outline-secondary dropdown-toggle bg-white shadow-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-download me-1"></i> Export Reports
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end shadow">
+            <li><a class="dropdown-item" href="{% url 'dashboard:export_overdue_pdf' %}"><i class="bi bi-filetype-pdf text-danger me-2"></i> Overdue Loans Report (PDF)</a></li>
+            <li><a class="dropdown-item" href="{% url 'dashboard:export_books_csv' %}"><i class="bi bi-filetype-csv text-success me-2"></i> Books Catalog (CSV)</a></li>
+            <li><a class="dropdown-item" href="{% url 'dashboard:export_transactions_csv' %}"><i class="bi bi-filetype-csv text-primary me-2"></i> Circulation Transactions (CSV)</a></li>
+        </ul>
+    </div>
+</div>
+
+<!-- KPI Metric Cards Row -->
+<div class="row g-3 mb-4">
+    <!-- Total Titles -->
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card stat-card bg-white p-3 h-100">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small text-uppercase fw-bold">Catalog Titles</span>
+                    <h3 class="fw-bold mb-0 text-dark">{{ total_books }}</h3>
+                    <div class="small text-muted mt-1">{{ total_copies }} physical copies</div>
+                </div>
+                <div class="stat-icon bg-primary-subtle text-primary">
+                    <i class="bi bi-journal-album"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Loans -->
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card stat-card bg-white p-3 h-100">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small text-uppercase fw-bold">Active Loans</span>
+                    <h3 class="fw-bold mb-0 text-primary">{{ issued_copies }}</h3>
+                    <div class="small text-success mt-1">{{ available_copies }} available on shelves</div>
+                </div>
+                <div class="stat-icon bg-info-subtle text-info">
+                    <i class="bi bi-book-half"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overdue Loans Alert -->
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card stat-card bg-white p-3 h-100 border-start border-4 border-danger">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-danger small text-uppercase fw-bold">Overdue Loans</span>
+                    <h3 class="fw-bold mb-0 text-danger">{{ overdue_loans }}</h3>
+                    <div class="small text-danger mt-1">Require immediate return</div>
+                </div>
+                <div class="stat-icon bg-danger-subtle text-danger">
+                    <i class="bi bi-clock-history"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Unpaid Fines -->
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card stat-card bg-white p-3 h-100">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small text-uppercase fw-bold">Unpaid Fines</span>
+                    <h3 class="fw-bold mb-0 text-warning-emphasis">${{ fines_unpaid_total }}</h3>
+                    <div class="small text-success mt-1">${{ fines_collected_total }} collected to date</div>
+                </div>
+                <div class="stat-icon bg-warning-subtle text-warning-emphasis">
+                    <i class="bi bi-cash-stack"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row g-4 mb-4">
+    <!-- Monthly Circulation Trends Chart -->
+    <div class="col-12 col-lg-8">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white py-3">
+                <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-bar-chart-line me-2 text-primary"></i>Monthly Circulation Volume (Past 6 Months)</h6>
+            </div>
+            <div class="card-body p-4">
+                <div style="height: 280px; position: relative;">
+                    <canvas id="circulationTrendsChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Distribution Doughnut Chart -->
+    <div class="col-12 col-lg-4">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white py-3">
+                <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-pie-chart me-2 text-primary"></i>Top Categories</h6>
+            </div>
+            <div class="card-body p-4">
+                <div style="height: 280px; position: relative;">
+                    <canvas id="categoryDistributionChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tables Row -->
+<div class="row g-4">
+    <!-- Critical Overdue Alerts Table -->
+    <div class="col-12 col-lg-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold text-danger"><i class="bi bi-exclamation-octagon me-2"></i>Critical Overdue Loans</h6>
+                <a href="{% url 'transactions:circulation_list' %}?status=OVERDUE" class="btn btn-sm btn-outline-danger">View All</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Member</th>
+                                <th>Book Title</th>
+                                <th>Due Date</th>
+                                <th>Overdue</th>
+                                <th class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for loan in critical_overdue %}
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">{{ loan.user.get_full_name|default:loan.user.username }}</div>
+                                    <div class="small text-muted font-monospace">{{ loan.user.member_id }}</div>
+                                </td>
+                                <td class="text-truncate" style="max-width: 140px;" title="{{ loan.book_copy.book.title }}">
+                                    {{ loan.book_copy.book.title }}
+                                </td>
+                                <td>{{ loan.due_date|date:"M d, Y" }}</td>
+                                <td>
+                                    <span class="badge bg-danger">{{ loan.overdue_days }} days</span>
+                                </td>
+                                <td class="text-end">
+                                    <a href="{% url 'transactions:return_book' %}?barcode={{ loan.book_copy.barcode }}" class="btn btn-sm btn-outline-success">
+                                        Check In
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-muted">
+                                    <i class="bi bi-check-circle fs-3 text-success d-block mb-1"></i>
+                                    No overdue loans currently recorded!
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Transactions Table -->
+    <div class="col-12 col-lg-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-arrow-left-right me-2 text-primary"></i>Recent Circulation Activity</h6>
+                <a href="{% url 'transactions:circulation_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Book</th>
+                                <th>Member</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for t in recent_transactions %}
+                            <tr>
+                                <td class="text-truncate" style="max-width: 150px;" title="{{ t.book_copy.book.title }}">
+                                    <div class="fw-semibold text-truncate">{{ t.book_copy.book.title }}</div>
+                                    <div class="small text-muted font-monospace">{{ t.book_copy.barcode }}</div>
+                                </td>
+                                <td>{{ t.user.get_full_name|default:t.user.username }}</td>
+                                <td>{{ t.issue_date|date:"M d, Y" }}</td>
+                                <td>
+                                    {% if t.status == 'RETURNED' %}
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle">Returned</span>
+                                    {% elif t.status == 'OVERDUE' %}
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Overdue</span>
+                                    {% else %}
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle">On Loan</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center py-4 text-muted">No circulation transactions recorded yet.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Fetch Chart Data from API
+    fetch("{% url 'dashboard:chart_data' %}")
+        .then(res => res.json())
+        .then(data => {
+            // 1. Circulation Trends Chart
+            const ctxTrends = document.getElementById('circulationTrendsChart');
+            if (ctxTrends) {
+                new Chart(ctxTrends, {
+                    type: 'bar',
+                    data: {
+                        labels: data.trends.labels.length > 0 ? data.trends.labels : ['Current Month'],
+                        datasets: [{
+                            label: 'Books Issued',
+                            data: data.trends.counts.length > 0 ? data.trends.counts : [{{ total_books|default:1 }}],
+                            backgroundColor: 'rgba(37, 99, 235, 0.75)',
+                            borderColor: '#2563eb',
+                            borderWidth: 1.5,
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { stepSize: 1 }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // 2. Category Distribution Doughnut Chart
+            const ctxCat = document.getElementById('categoryDistributionChart');
+            if (ctxCat) {
+                new Chart(ctxCat, {
+                    type: 'doughnut',
+                    data: {
+                        labels: data.categories.labels,
+                        datasets: [{
+                            data: data.categories.counts,
+                            backgroundColor: [
+                                '#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4'
+                            ],
+                            borderWidth: 2,
+                            borderColor: '#ffffff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+            }
+        });
+</script>
+{% endblock %}
+
